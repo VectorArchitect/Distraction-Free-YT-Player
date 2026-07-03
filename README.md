@@ -1,1 +1,1 @@
-# Distraction-YT-Player
+# Distraction-Free-YT-Player
