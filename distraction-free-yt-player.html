@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Screening Room — Distraction-Free YouTube Player</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0b0c;
+    --bg-raised:#141416;
+    --frame:#1b1b1e;
+    --amber:#e8a33d;
+    --amber-dim:#8a611f;
+    --teal:#3ec9a7;
+    --ink:#ede9e2;
+    --ink-dim:#8b8b8f;
+    --danger:#d9695a;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:48px 20px 80px;
+  }
+
+  .marquee{
+    font-family:'Bebas Neue',sans-serif;
+    font-size:clamp(2.2rem,6vw,3.6rem);
+    letter-spacing:0.06em;
+    color:var(--amber);
+    text-shadow:0 0 18px rgba(232,163,61,0.35), 0 0 2px rgba(232,163,61,0.6);
+    margin:0;
+    text-align:center;
+  }
+  .subhead{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:0.78rem;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--ink-dim);
+    margin-top:6px;
+    margin-bottom:40px;
+    text-align:center;
+  }
+
+  .intake{
+    width:100%;
+    max-width:720px;
+    display:flex;
+    gap:10px;
+    margin-bottom:14px;
+  }
+  .intake input{
+    flex:1;
+    background:var(--bg-raised);
+    border:1px solid #2a2a2e;
+    border-radius:6px;
+    padding:14px 16px;
+    color:var(--ink);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:0.9rem;
+    outline:none;
+    transition:border-color .15s ease;
+  }
+  .intake input:focus{border-color:var(--amber-dim);}
+  .intake input::placeholder{color:#55555a;}
+
+  .intake button{
+    background:var(--amber);
+    color:#161208;
+    border:none;
+    border-radius:6px;
+    padding:0 26px;
+    font-family:'IBM Plex Mono',monospace;
+    font-weight:600;
+    font-size:0.85rem;
+    letter-spacing:0.04em;
+    cursor:pointer;
+    transition:filter .15s ease, transform .1s ease;
+  }
+  .intake button:hover{filter:brightness(1.1);}
+  .intake button:active{transform:scale(0.97);}
+
+  .status{
+    width:100%;
+    max-width:720px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:0.78rem;
+    color:var(--danger);
+    min-height:18px;
+    margin-bottom:20px;
+  }
+
+  .options{
+    width:100%;
+    max-width:720px;
+    display:flex;
+    flex-wrap:wrap;
+    gap:18px;
+    margin-bottom:36px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:0.75rem;
+    color:var(--ink-dim);
+  }
+  .options label{display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none;}
+  .options input[type=checkbox]{accent-color:var(--amber);width:14px;height:14px;}
+
+  /* film-strip framed player */
+  .reel{
+    width:100%;
+    max-width:960px;
+    display:none;
+  }
+  .reel.active{display:block;}
+
+  .sprockets{
+    display:flex;
+    justify-content:space-evenly;
+    background:var(--frame);
+    padding:6px 10px;
+    border-radius:8px 8px 0 0;
+  }
+  .sprockets span{
+    width:10px;height:10px;border-radius:2px;
+    background:var(--bg);
+  }
+
+  .screen{
+    position:relative;
+    width:100%;
+    aspect-ratio:16/9;
+    background:#000;
+    border-left:14px solid var(--frame);
+    border-right:14px solid var(--frame);
+    overflow:hidden;
+  }
+  .screen iframe{
+    width:100%;
+    height:100%;
+    border:0;
+    display:block;
+  }
+
+  .sprockets.bottom{border-radius:0 0 8px 8px;}
+
+  .meta-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-top:14px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:0.75rem;
+    color:var(--ink-dim);
+  }
+  .meta-row button{
+    background:none;
+    border:1px solid #2a2a2e;
+    color:var(--ink-dim);
+    border-radius:6px;
+    padding:8px 14px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:0.72rem;
+    cursor:pointer;
+    transition:border-color .15s ease, color .15s ease;
+  }
+  .meta-row button:hover{border-color:var(--teal);color:var(--teal);}
+
+  .note{
+    width:100%;
+    max-width:720px;
+    margin-top:44px;
+    padding:16px 18px;
+    background:var(--bg-raised);
+    border:1px solid #232326;
+    border-radius:8px;
+    font-size:0.82rem;
+    line-height:1.55;
+    color:var(--ink-dim);
+  }
+  .note strong{color:var(--ink);}
+
+  /* focus mode: dim everything except the screen */
+  body.focus .marquee,
+  body.focus .subhead,
+  body.focus .intake,
+  body.focus .status,
+  body.focus .options,
+  body.focus .note{
+    display:none;
+  }
+  body.focus{padding-top:6vh;}
+  body.focus .reel{max-width:1100px;}
+
+  @media (max-width:600px){
+    .intake{flex-direction:column;}
+    .intake button{padding:14px;}
+  }
+</style>
+</head>
+<body>
+
+  <h1 class="marquee">Screening Room</h1>
+  <p class="subhead">paste a link · watch the video · nothing else loads</p>
+
+  <div class="intake">
+    <input id="urlInput" type="text" placeholder="Paste a YouTube link or video ID…" autocomplete="off">
+    <button id="playBtn">Play</button>
+  </div>
+  <div class="status" id="status"></div>
+
+  <div class="options">
+    <label><input type="checkbox" id="autoplay"> Autoplay</label>
+    <label><input type="checkbox" id="focusMode"> Focus mode (hide everything but the screen)</label>
+    <label><input type="checkbox" id="loop"> Loop this video</label>
+  </div>
+
+  <div class="reel" id="reel">
+    <div class="sprockets">
+      <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+    </div>
+    <div class="screen" id="screen"></div>
+    <div class="sprockets bottom">
+      <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+    </div>
+    <div class="meta-row">
+      <span id="nowPlaying">—</span>
+      <button id="stopBtn">Stop &amp; clear</button>
+    </div>
+  </div>
+
+  <div class="note">
+    <strong>Why you'll still see a couple of thumbnails:</strong> YouTube's embedded player no longer supports fully turning off related videos. With <code>rel=0</code> (used here), the end-of-video and pause screens are restricted to showing videos <em>from the same channel</em> only — YouTube removed the option to disable this entirely back in 2018. This player also strips annotations, branding, and captions-by-default to keep the frame as quiet as possible. If you want zero suggestions of any kind, check "Loop this video" — it replays the same video instead of ending on a suggestion screen.
+  </div>
+
+<script>
+  const urlInput = document.getElementById('urlInput');
+  const playBtn = document.getElementById('playBtn');
+  const stopBtn = document.getElementById('stopBtn');
+  const status = document.getElementById('status');
+  const reel = document.getElementById('reel');
+  const screen = document.getElementById('screen');
+  const nowPlaying = document.getElementById('nowPlaying');
+  const autoplayBox = document.getElementById('autoplay');
+  const focusBox = document.getElementById('focusMode');
+  const loopBox = document.getElementById('loop');
+
+  function extractVideoId(input){
+    input = input.trim();
+    // bare 11-char ID
+    if(/^[a-zA-Z0-9_-]{11}$/.test(input)) return input;
+    const patterns = [
+      /youtu\.be\/([a-zA-Z0-9_-]{11})/,
+      /youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/,
+      /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
+      /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/,
+      /youtube\.com\/live\/([a-zA-Z0-9_-]{11})/
+    ];
+    for(const p of patterns){
+      const m = input.match(p);
+      if(m) return m[1];
+    }
+    return null;
+  }
+
+  function loadVideo(){
+    const raw = urlInput.value;
+    const id = extractVideoId(raw);
+    if(!id){
+      status.textContent = "Couldn't find a video ID in that — paste a full YouTube link or just the 11-character ID.";
+      return;
+    }
+    status.textContent = '';
+
+    const params = new URLSearchParams({
+      rel: '0',
+      modestbranding: '1',
+      iv_load_policy: '3',
+      cc_load_policy: '0',
+      fs: '1',
+      playsinline: '1',
+      autoplay: autoplayBox.checked ? '1' : '0'
+    });
+    if(loopBox.checked){
+      params.set('loop','1');
+      params.set('playlist', id); // required by YouTube for loop to work on a single video
+    }
+
+    // youtube-nocookie.com avoids setting tracking cookies until playback starts
+    const src = `https://www.youtube-nocookie.com/embed/${id}?${params.toString()}`;
+    screen.innerHTML = `<iframe src="${src}" title="YouTube video player" frameborder="0"
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+      allowfullscreen></iframe>`;
+
+    reel.classList.add('active');
+    nowPlaying.textContent = `now showing · ${id}`;
+    document.body.classList.toggle('focus', focusBox.checked);
+    reel.scrollIntoView({behavior:'smooth', block:'center'});
+  }
+
+  function stopVideo(){
+    screen.innerHTML = '';
+    reel.classList.remove('active');
+    nowPlaying.textContent = '—';
+    document.body.classList.remove('focus');
+    urlInput.value = '';
+    urlInput.focus();
+  }
+
+  playBtn.addEventListener('click', loadVideo);
+  stopBtn.addEventListener('click', stopVideo);
+  urlInput.addEventListener('keydown', e => { if(e.key === 'Enter') loadVideo(); });
+  focusBox.addEventListener('change', () => {
+    if(reel.classList.contains('active')) document.body.classList.toggle('focus', focusBox.checked);
+  });
+
+  document.addEventListener('keydown', e => {
+    if(e.key === 'Escape' && document.body.classList.contains('focus')){
+      focusBox.checked = false;
+      document.body.classList.remove('focus');
+    }
+  });
+</script>
+</body>
+</html>
