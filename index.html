@@ -387,6 +387,7 @@
     <strong>Minimalist Build:</strong> No branding, zero sidebars, clean layouts. <strong>Local Storage Pipeline:</strong> Everything runs purely locally inside your browser architecture. <strong>Quick watch</strong> can be spun up on-demand to process short instances without affecting standard index limits.
   </div>
 
+<script src="./player-utils.js"></script>
 <script>
   const LS_PLAYLISTS = 'sr_playlists_v3';
   const LS_RECORDS = 'sr_records_v3';
@@ -439,44 +440,12 @@
     const m = Math.floor(s/60), sec = s%60;
     return `${m}:${sec.toString().padStart(2,'0')}`;
   }
-  function parseTimestamp(input) {
-    input = input.trim();
-    if (!input) return null;
-    if (input.includes(':')) {
-      const parts = input.split(':').map(Number);
-      if (parts.some(isNaN)) return null;
-      if (parts.length === 2) return parts[0] * 60 + parts[1];
-      if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
-    } else {
-      const val = Number(input);
-      if (!isNaN(val)) return val;
-    }
-    return null;
-  }
   function activeList(){ return playlists.byId[activePlaylistId]; }
   function currentVideoId(){
     if(playback.mode==='quick') return playback.videoId;
     const pl = playlists.byId[playback.playlistId];
     if(!pl) return null;
     return pl.videoIds[playback.index] || null;
-  }
-
-  function extractVideoId(input){
-    input = input.trim();
-    if(/^[a-zA-Z0-9_-]{11}$/.test(input)) return input;
-    const patterns = [
-      /youtu\.be\/([a-zA-Z0-9_-]{11})/,
-      /[?&]v=([a-zA-Z0-9_-]{11})/,
-      /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
-      /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/,
-      /youtube\.com\/live\/([a-zA-Z0-9_-]{11})/
-    ];
-    for(const p of patterns){ const m = input.match(p); if(m) return m[1]; }
-    return null;
-  }
-  function extractPlaylistId(input){
-    const m = input.match(/[?&]list=([a-zA-Z0-9_-]+)/);
-    return m ? m[1] : null;
   }
 
   async function fetchTitle(id){
@@ -907,7 +876,7 @@
       document.getElementById('timestampInput').value = '';
       setHint("Timestamp target acquired.");
     } else {
-      setHint("Invalid Format. Use 'MM:SS' or purely seconds.", true);
+      setHint("Invalid format. Use MM:SS, HH:MM:SS, or seconds.", true);
     }
   }
   document.getElementById('jumpTimeBtn').addEventListener('click', executeJump);
